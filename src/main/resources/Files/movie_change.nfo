@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<movie>
+  <title></title>
+  <rating>8.72</rating>
+  <plot>.</plot>
+  <runtime></runtime>
+  <mpaa>-17</mpaa>
+  <uniqueid type="num" defult="true">-994</uniqueid>
+  <uniqueid type="cid"></uniqueid>
+  <genre></genre>
+  <genre></genre>
+  <genre></genre>
+  <genre></genre>
+  <genre></genre>
+  <genre></genre>
+  <tag></tag>
+  <tag></tag>
+  <tag></tag>
+  <tag></tag>
+  <tag></tag>
+  <tag></tag>
+  <country></country>
+  <director></director>
+  <premiered>2023-02-14</premiered>
+  <studio>IDEA </studio>
+  <trailer>mp4</trailer>
+  <actor>
+    <name></name>
+  </actor>
+</movie>
