@@ -1,6 +1,9 @@
 package BO;
 
 import com.thoughtworks.xstream.annotations.XStreamAlias;
+import com.thoughtworks.xstream.annotations.XStreamAsAttribute;
+import com.thoughtworks.xstream.annotations.XStreamConverter;
+import com.thoughtworks.xstream.converters.basic.StringConverter;
 import lombok.*;
 
 import java.io.Serializable;
@@ -76,15 +79,21 @@ public class movie implements Serializable {
     /**
      * UniqueId
      */
-    @XStreamAlias(("uniqueid"))
-    private uniqueid[] uniqueid;
+    @XStreamAlias("uniqueid")
+    private List<UniqueID> uniqueid;
     @Getter
     @Setter
     @NoArgsConstructor
     @AllArgsConstructor
     @EqualsAndHashCode
-    public class uniqueid {
+    public static class UniqueID {
+        @XStreamAsAttribute
         private String type;
+
+        @XStreamAsAttribute
+        private String defaultValue;
+
+        @XStreamConverter(value = StringConverter.class)
         private String value;
     }
 }

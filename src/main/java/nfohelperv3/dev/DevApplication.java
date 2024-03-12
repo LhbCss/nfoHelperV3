@@ -12,8 +12,9 @@ public class DevApplication {
         XStream xStream = new XStream();
         xStream.alias("movie", movie.class);
         xStream.allowTypeHierarchy(movie.class);
-         movie movie = (movie) xStream.fromXML(
-                 DevApplication.class.getResource("/Files/movie.nfo"));
-         System.out.println(movie);
+        xStream.addImplicitCollection(movie.class, "uniqueid");
+        movie movie = (movie) xStream.fromXML(
+                DevApplication.class.getResource("/Files/movie.nfo"));
+        System.out.println(movie);
     }
 }
