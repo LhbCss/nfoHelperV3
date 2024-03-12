@@ -7,12 +7,12 @@
   <mpaa>-17</mpaa>
   <uniqueid type="num" defult="true">-994</uniqueid>
   <uniqueid type="cid"></uniqueid>
-  <genre></genre>
-  <genre></genre>
-  <genre></genre>
-  <genre></genre>
-  <genre></genre>
-  <genre></genre>
+  <genre>1</genre>
+  <genre>2</genre>
+  <genre>3</genre>
+  <genre>4</genre>
+  <genre>5</genre>
+  <genre>6</genre>
   <tag></tag>
   <tag></tag>
   <tag></tag>
