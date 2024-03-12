@@ -11,10 +11,10 @@ import java.io.File;
  */
 public class Constant {
     /**
-     * 启动类绝对路径
+     * 启动类绝对路径、工作路径
      * 格式：E:\ideaProject\dev\target\classes\nfohelperv3\dev
      */
-    public static final String DEV_CLASSPATH;
+    public static String DEV_CLASSPATH;
 
     static {
         String path = DevApplication.class.getResource("").getPath();

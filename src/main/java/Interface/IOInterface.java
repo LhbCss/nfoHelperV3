@@ -13,4 +13,9 @@ public interface IOInterface {
      */
     Element getRootElement(File nfoFile);
 
+    /**
+     * 修改工作路径
+     * @param classPath 希望修改的工作路径
+     */
+    void changeClassPath(String classPath);
 }
