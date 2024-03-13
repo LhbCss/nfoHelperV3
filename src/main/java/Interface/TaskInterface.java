@@ -1,5 +1,6 @@
 package Interface;
 
+import Constant.NfoHelperResult;
 import org.springframework.stereotype.Component;
 
 @Component
