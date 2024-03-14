@@ -2,20 +2,22 @@ package Service;
 
 import Constant.NfoHelperResult;
 import Interface.IOInterface;
-import Interface.TaskInterface;
-import jakarta.annotation.Resource;
+import ch.qos.logback.core.util.FileUtil;
+import org.apache.commons.io.FileUtils;
+import org.jdom2.Document;
 import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+import org.jdom2.output.Format;
+import org.jdom2.output.XMLOutputter;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
-import org.springframework.util.FileCopyUtils;
 
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.*;
 
 import static Constant.Constant.DEV_CLASSPATH;
@@ -25,6 +27,15 @@ import static Constant.Constant.DEV_CLASSPATH;
 public class IOService implements IOInterface {
     @Override
     public Element getRootElement(File nfoFile) {
+        Document document = null;
+        try {
+            document = new SAXBuilder().build(nfoFile);
+        } catch (IOException | JDOMException ioe) {
+            System.out.println("#[WARN]    .nfo/XML 文件解析失败");
+        }
+        if (document != null) {
+            return document.getRootElement();
+        }
         return null;
     }
 
@@ -37,6 +48,12 @@ public class IOService implements IOInterface {
      * 线程池同步计数器
      */
     static CountDownLatch latch;
+
+    private static final String NFO_SUFFIX = ".nfo";
+
+    private static final String XML_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>\n";
+
+    private static final XMLOutputter XML_OUTPUTTER = new XMLOutputter(Format.getPrettyFormat());
 
     @Override
     public NfoHelperResult<String> changeClassPath(String path) {
@@ -76,10 +93,64 @@ public class IOService implements IOInterface {
             });
         }
         latch.await();
-        System.out.println("1");
         // 关闭线程池
         TASK_EXECUTOR.shutdown();
+        System.out.println("#   并发任务结束，共移动了 " + threadNum + " 个文件夹");
         return null;
+    }
+
+    @Override
+    public NfoHelperResult<List<File>> listFoldersNfo(File dis) {
+        if (!dis.isDirectory()) {
+            return new NfoHelperResult<>(false, (List<File>) null);
+        }
+        // 第一步 获取当前目录下所有文件夹
+        List<File> childFolders = Arrays.stream(Objects.requireNonNull(dis.listFiles(File::isDirectory))).toList();
+        // 第二步 遍历文件夹，获取 .nfo 文件
+        List<File> nfoFileList = new ArrayList<>();
+        if (!childFolders.isEmpty()) {
+            for (int i = 0;i < childFolders.size();i++) {
+                // 获取子文件夹中的所有文件
+                List<File> files = Arrays.stream(Objects.requireNonNull(childFolders.get(i).listFiles())).toList();
+                for (File file : files) {
+                    if (file.getName().endsWith(NFO_SUFFIX)) {
+                        nfoFileList.add(file);
+                    }
+                }
+            }
+        }
+        return new NfoHelperResult<>(true, nfoFileList);
+    }
+
+    @Override
+    public NfoHelperResult<String> changeActorName(String actorName, File nfoFile) {
+        if (!nfoFile.getName().endsWith(NFO_SUFFIX)) {
+            return new NfoHelperResult<>(false, "File 对象不是一个 .nfo 文件");
+        }
+        Element root = getRootElement(nfoFile);
+        List<Element> children = root.getChildren();
+        for (Element element : children) {
+            if ("actor".equals(element.getName())) {
+                List<Element> children1 = element.getChildren();
+                for (Element element1 : children1) {
+                    if ("name".equals(element1.getName())) {
+                        element1.setText(actorName);
+                    }
+                }
+            }
+        }
+        try {
+            // 清空原 movie.nfo 数据
+            FileWriter fileWriter = new FileWriter(nfoFile);
+            fileWriter.write(XML_HEADER);
+            fileWriter.close();
+            // 使用 OutPutStream 将 文件写出
+            XML_OUTPUTTER.output(root, new FileOutputStream(nfoFile));
+        } catch (IOException e) {
+            System.out.println("#[WARN]    无法修改 " + nfoFile.getName() + "，文件已不存在或 .exe 没有删除该路径下文件的权限");
+            return new NfoHelperResult<>(false, "无法修改/编辑 .nfo 文件");
+        }
+        return new NfoHelperResult<>(true, "修改成功");
     }
 
     private void handlePullFolder(File folder) throws IOException {
@@ -87,9 +158,9 @@ public class IOService implements IOInterface {
         if (files != null) {
             // 获取工作路径内文件夹内的文件夹 File 对象
             File file = files[0];
-            System.out.println("#   获取到工作路径内文件夹内文件 -> " + file + " ，尝试开始移动至工作路径...");
             try {
-                FileCopyUtils.copy(file, new File(DEV_CLASSPATH));
+                FileUtils.copyDirectoryToDirectory(file, new File(DEV_CLASSPATH));
+                FileUtils.deleteDirectory(file);
             } finally {
                 latch.countDown();
             }

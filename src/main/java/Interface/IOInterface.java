@@ -2,10 +2,14 @@ package Interface;
 
 import Constant.NfoHelperResult;
 import org.jdom2.Element;
+import org.jdom2.JDOMException;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.List;
+
 @Component
 @Lazy
 public interface IOInterface {
@@ -14,7 +18,7 @@ public interface IOInterface {
      * @param nfoFile .nfo 文件
      * @return JDOM Element 对象
      */
-    Element getRootElement(File nfoFile);
+    Element getRootElement(File nfoFile) throws IOException, JDOMException;
 
     /**
      * 修改工作路径
@@ -26,4 +30,20 @@ public interface IOInterface {
      * @return 操作结果
      */
     NfoHelperResult<String> pullFolderToClassPath() throws InterruptedException;
+
+    /**
+     * 获取文件夹路径内所有文件夹内的 .nfo 文件集合
+     * @param dis 工作路径
+     * @return .nfo 文件集合
+     * @date  2024年3月14日22:08:23
+     */
+    NfoHelperResult<List<File>> listFoldersNfo(File dis);
+
+    /**
+     * 修改 .nfo 描述文件内女艺人的名字
+     * @param actorName 目标名称
+     * @return 操作结果
+     * @date 2024年3月14日22:10:11
+     */
+    NfoHelperResult<String> changeActorName(String actorName, File nfoFile);
 }
