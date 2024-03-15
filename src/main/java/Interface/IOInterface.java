@@ -46,4 +46,40 @@ public interface IOInterface {
      * @date 2024年3月14日22:10:11
      */
     NfoHelperResult<String> changeActorName(String actorName, File nfoFile);
+
+    /**
+     * 当且仅当 .nfo 内缺失女艺人名字时，为其添加该名称标签
+     * @param actorName 名称
+     * @param nfoFile .nfo File 对象
+     * @return 操作结果
+     * @date 2024年3月16日01:10:50
+     */
+    NfoHelperResult<String> addActorNameIfAbsent(String actorName, File nfoFile);
+
+    /**
+     * 将 Element 对象覆盖写回 .nfo 文件
+     * @param nfoFile .nfo File 对象
+     * @param root Element 元素
+     * @return 操作结果
+     * @date 2024年3月16日01:36:43
+     */
+    NfoHelperResult<String> rewriteNfoFile(File nfoFile, Element root);
+
+    /**
+     * 为 .nfo 文件插入一条新 tag
+     * @param nfoFile .nfo File 对象
+     * @param tagName tag 名称
+     * @return 操作结果
+     * @date 2024年3月16日01:36:43
+     */
+    NfoHelperResult<String> addOneTag(File nfoFile, String tagName);
+
+    /**
+     * 根据下标删除 .nfo 文件的 tag 标签
+     * @param nfoFile .nfo File 对象
+     * @param index 下标
+     * @return 操作结果
+     * @date 2024年3月16日01:36:43
+     */
+    NfoHelperResult<String> deleteTagByIndex(File nfoFile, Integer index);
 }

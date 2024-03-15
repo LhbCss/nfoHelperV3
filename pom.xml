@@ -59,6 +59,7 @@
                 </configuration>
             </plugin>
         </plugins>
+        <finalName>nfoHelper</finalName>
     </build>
 
 </project>

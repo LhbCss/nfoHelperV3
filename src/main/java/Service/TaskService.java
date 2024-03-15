@@ -1,6 +1,7 @@
 package Service;
 
 import Constant.NfoHelperResult;
+import Constant.UtilAid;
 import Interface.IOInterface;
 import Interface.TaskInterface;
 import jakarta.annotation.Resource;
@@ -33,6 +34,8 @@ public class TaskService implements TaskInterface {
                 + "#    Task 0 -> 修改工作路径（慎重！工作路径出错可能造成无法恢复的后果）" + "\n"
                 + "#    Task 1 -> 拉出当前工作路径下所有文件夹内的文件夹至工作路径中" + "\n"
                 + "#    Task 2 -> 将当前工作目录下的所有文件夹内的 .nfo 文件内艺人名字改为输入的值" + "\n"
+                + "#    Task 5 -> Task 1 + 2 同时执行" + "\n"
+                + "#    Task 6 -> 将当前工作目录的所有文件夹内的 .nfo 文件添加女艺人的名字" + "\n"
                 + "---------------------------------------------------" + "\n"
         );
     }
@@ -43,7 +46,6 @@ public class TaskService implements TaskInterface {
             Scanner sc = new Scanner(System.in);
             System.out.println("#   请输入 Task 代号以执行任务 -> ");
             try {
-                System.in.reset();
                 int inputChoose = sc.nextInt();
                 switch (inputChoose) {
                     case 0: {
@@ -62,6 +64,7 @@ public class TaskService implements TaskInterface {
                     }
                     case 2: {
                         sc = new Scanner(System.in);
+                        System.out.println("#   请输入女艺人名字 -> ");
                         String actorName = sc.nextLine();
                         NfoHelperResult<List<File>> result = ioInterface.listFoldersNfo(new File(DEV_CLASSPATH));
                         if (result.getSuccess() && !result.getData().isEmpty()) {
@@ -70,19 +73,53 @@ public class TaskService implements TaskInterface {
                                 NfoHelperResult<String> taskResult = ioInterface.changeActorName(actorName, nfo);
                                 if (!taskResult.getSuccess()) {
                                     // 输出错误信息并结束
-                                    System.out.println("#[WARN]    " + taskResult.getData());
+                                    UtilAid.warnConsole(taskResult.getData());
                                     break;
                                 }
                             }
                         }
+                        break;
+                    }
+                    case 5: {
+                        sc = new Scanner(System.in);
+                        System.out.println("#   请输入女艺人名字 -> ");
+                        String actorName = sc.nextLine();
+                        NfoHelperResult<String> result = ioInterface.pullFolderToClassPath();
+                        if (result.getSuccess()) {
+                            NfoHelperResult<List<File>> result2 = ioInterface.listFoldersNfo(new File(DEV_CLASSPATH));
+                            if (result.getSuccess() && !result.getData().isEmpty()) {
+                                List<File> nfoFiles = result2.getData();
+                                for (File nfo : nfoFiles) {
+                                    NfoHelperResult<String> taskResult = ioInterface.changeActorName(actorName, nfo);
+                                    if (!taskResult.getSuccess()) {
+                                        // 输出错误信息并结束
+                                        UtilAid.warnConsole(taskResult.getData());
+                                        break;
+                                    }
+                                }
+                            }
+                            break;
+                        }
+                    }
+                    case 6: {
+                        sc = new Scanner(System.in);
+                        System.out.println("#   请输入女艺人名字 -> ");
+                        String actorName = sc.nextLine();
+                        NfoHelperResult<List<File>> result = ioInterface.listFoldersNfo(new File(DEV_CLASSPATH));
+                        if (result.getSuccess() && !result.getData().isEmpty()) {
+                            for (File nfoFile : result.getData()) {
+                                ioInterface.addActorNameIfAbsent(actorName, nfoFile);
+                            }
+                        }
+                        break;
                     }
                     default: {
-                        System.out.println("#   输入的数字有误");
+                        UtilAid.warnConsole("输入的数字有误");
                         break;
                     }
                 }
-            } catch (InputMismatchException | IOException e) {
-                System.out.println("#   请输入一个数字");
+            } catch (InputMismatchException e) {
+                UtilAid.warnConsole("请输入一个数字");
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

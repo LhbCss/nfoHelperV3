@@ -13,6 +13,7 @@ import org.jdom2.output.XMLOutputter;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
+import java.awt.image.Kernel;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
@@ -96,7 +97,7 @@ public class IOService implements IOInterface {
         // 关闭线程池
         TASK_EXECUTOR.shutdown();
         System.out.println("#   并发任务结束，共移动了 " + threadNum + " 个文件夹");
-        return null;
+        return new NfoHelperResult<>(true, "执行成功");
     }
 
     @Override
@@ -139,6 +140,29 @@ public class IOService implements IOInterface {
                 }
             }
         }
+        return rewriteNfoFile(nfoFile, root);
+    }
+
+    @Override
+    public NfoHelperResult<String> addActorNameIfAbsent(String actorName, File nfoFile) {
+        if (!nfoFile.getName().endsWith(NFO_SUFFIX)) {
+            return new NfoHelperResult<>(false, "File 对象不是一个 .nfo 文件");
+        }
+        Element root = getRootElement(nfoFile);
+        List<Element> actorChildren = root.getChildren("actor");
+        if (actorChildren.isEmpty()) {
+            // 不存在 <actor></actor> 标签，为其添加
+            Element actor = new Element("actor");
+            Element name = new Element("name");
+            name.setText(actorName); // <name>actorName</name>
+            actor.addContent(name); // <actor><name>actorName</name></actor>
+            root.addContent(actor);
+        }
+        return rewriteNfoFile(nfoFile, root);
+    }
+
+    @Override
+    public NfoHelperResult<String> rewriteNfoFile(File nfoFile, Element root) {
         try {
             // 清空原 movie.nfo 数据
             FileWriter fileWriter = new FileWriter(nfoFile);
@@ -153,14 +177,50 @@ public class IOService implements IOInterface {
         return new NfoHelperResult<>(true, "修改成功");
     }
 
+    @Override
+    public NfoHelperResult<String> addOneTag(File nfoFile, String tagName) {
+        if (!nfoFile.getName().endsWith(NFO_SUFFIX)) {
+            return new NfoHelperResult<>(false, "File 对象不是一个 .nfo 文件");
+        }
+        Element root = getRootElement(nfoFile);
+        Element tag = new Element("tag");
+        tag.setText(tagName);
+        root.addContent(tag);
+        rewriteNfoFile(nfoFile, root);
+        return new NfoHelperResult<>(true, "操作成功");
+    }
+
+    @Override
+    public NfoHelperResult<String> deleteTagByIndex(File nfoFile, Integer index) {
+        if (!nfoFile.getName().endsWith(NFO_SUFFIX)) {
+            return new NfoHelperResult<>(false, "File 对象不是一个 .nfo 文件");
+        }
+        Element root = getRootElement(nfoFile);
+        List<Element> tagChildren = root.getChildren("tag");
+        if (!tagChildren.isEmpty()) {
+            int size = tagChildren.size();
+            if (index > size || index < 0) {
+                return new NfoHelperResult<>(false, "输入的下标值不合法");
+            }
+            // 删除原有的所有 tag 标签
+            root.removeChildren("tag");
+            tagChildren.remove(index - 1);
+            root.addContent(tagChildren);
+            rewriteNfoFile(nfoFile, root);
+            return new NfoHelperResult<>("操作成功");
+        }
+        return new NfoHelperResult<>(false, "该 .nfo 标签不存在任何 tag 标签！");
+    }
+
     private void handlePullFolder(File folder) throws IOException {
-        File[] files = folder.listFiles();
-        if (files != null) {
-            // 获取工作路径内文件夹内的文件夹 File 对象
-            File file = files[0];
+        List<File> files = Arrays.stream(Objects.requireNonNull(folder.listFiles())).toList();
+        if (!files.isEmpty()) {
             try {
-                FileUtils.copyDirectoryToDirectory(file, new File(DEV_CLASSPATH));
-                FileUtils.deleteDirectory(file);
+                // 获取工作路径内文件夹内的文件夹 File 对象
+                for (File file : files) {
+                    FileUtils.copyDirectoryToDirectory(file, new File(DEV_CLASSPATH));
+                    FileUtils.deleteDirectory(file);
+                }
             } finally {
                 latch.countDown();
             }
