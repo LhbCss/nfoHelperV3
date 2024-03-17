@@ -18,7 +18,11 @@ public class Constant {
 
     static {
         String path = DevApplication.class.getResource("").getPath();
-        File file = new File(path);
+        // E:\testV3\青年大学习\nested:\C:\Users\84623\AppData\Local\Temp\
+        // e4jA4D.tmp_dir1710702181\nfoHelper.jar\!BOOT-INF\classes\!\nfohelperv3\dev
+        int nestedIndex = path.indexOf("nested");
+        String newPath = path.substring(0, nestedIndex);
+        File file = new File(newPath);
         DEV_CLASSPATH = file.getAbsolutePath();
     }
 }

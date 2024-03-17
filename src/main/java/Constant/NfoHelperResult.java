@@ -10,6 +10,7 @@ import java.io.Serializable;
 public class NfoHelperResult<T> implements Serializable {
     private Boolean success;
     private T data;
+    private String info;
 
     public NfoHelperResult(Boolean success, T data) {
         this.success = success;
@@ -18,6 +19,12 @@ public class NfoHelperResult<T> implements Serializable {
 
     public NfoHelperResult(T data) {
         this.success = Boolean.TRUE;
+        this.data = data;
+    }
+
+    public NfoHelperResult(Boolean success, String info, T data) {
+        this.success = success;
+        this.info = info;
         this.data = data;
     }
 }

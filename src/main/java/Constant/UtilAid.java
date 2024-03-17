@@ -8,12 +8,12 @@ import java.util.Date;
 
 @Component
 public class UtilAid {
-    private static final SimpleDateFormat consoleTimeFormat = new SimpleDateFormat(" HH:mm:ss - ");
+    private static final SimpleDateFormat consoleTimeFormat = new SimpleDateFormat(" HH:mm:ss:SSS - ");
     public static void warnConsole(String text) {
-        System.out.println("[\\u001B[31m" + AnsiColor.RED + "严重" + AnsiColor.DEFAULT + "]" + consoleTimeFormat.format(new Date()) + text);
+        System.out.println("[严重]" + consoleTimeFormat.format(new Date()) + text);
     }
 
     public static void infoConsole(String text) {
-        System.out.println("#[\\u001B[36mINFO\\u001B[0m]" + consoleTimeFormat.format(new Date()) + text);
+        System.out.println("[INFO]" + consoleTimeFormat.format(new Date()) + text);
     }
 }

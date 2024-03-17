@@ -1,8 +1,9 @@
 package Service;
 
 import Constant.NfoHelperResult;
+import Constant.UtilAid;
 import Interface.IOInterface;
-import ch.qos.logback.core.util.FileUtil;
+import jdk.jshell.execution.Util;
 import org.apache.commons.io.FileUtils;
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -13,13 +14,14 @@ import org.jdom2.output.XMLOutputter;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
-import java.awt.image.Kernel;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static Constant.Constant.DEV_CLASSPATH;
 
@@ -75,19 +77,21 @@ public class IOService implements IOInterface {
         // 工作路径下的所有文件夹
         List<File> classPathFolders = Arrays.stream(Objects.requireNonNull(classPath.listFiles(File::isDirectory))).toList();
         for (int i = 0;i < classPathFolders.size();i++) {
-            System.out.println("#" + (i + 1) + ".   获取到工作路径下的文件夹 -> " + classPathFolders.get(i).getName());
+            UtilAid.infoConsole("获取到工作路径下的文件夹 -> " + classPathFolders.get(i).getName());
         }
         // 将每个文件夹分配到工作线程池完成操作
         int threadNum = classPathFolders.size();
         TASK_EXECUTOR = Executors.newFixedThreadPool(threadNum);
+        UtilAid.infoConsole("开辟 " + threadNum + " 个线程并发执行拖拽任务");
         // 用于等待每个线程工作结束后返回
         latch = new CountDownLatch(threadNum);
         // 为线程池提交任务
+        AtomicInteger index = new AtomicInteger();
         for (File folder : classPathFolders) {
             TASK_EXECUTOR.submit(() -> {
                 // 工作路径下的每个文件夹，需要将它们里面的首个文件夹拉到工作路径下
                 try {
-                    handlePullFolder(folder);
+                    handlePullFolder(folder, index.incrementAndGet());
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
@@ -96,7 +100,6 @@ public class IOService implements IOInterface {
         latch.await();
         // 关闭线程池
         TASK_EXECUTOR.shutdown();
-        System.out.println("#   并发任务结束，共移动了 " + threadNum + " 个文件夹");
         return new NfoHelperResult<>(true, "执行成功");
     }
 
@@ -115,6 +118,7 @@ public class IOService implements IOInterface {
                 List<File> files = Arrays.stream(Objects.requireNonNull(childFolders.get(i).listFiles())).toList();
                 for (File file : files) {
                     if (file.getName().endsWith(NFO_SUFFIX)) {
+                        UtilAid.infoConsole("发现 .nfo 文件 " + file.getName());
                         nfoFileList.add(file);
                     }
                 }
@@ -166,10 +170,13 @@ public class IOService implements IOInterface {
         try {
             // 清空原 movie.nfo 数据
             FileWriter fileWriter = new FileWriter(nfoFile);
-            fileWriter.write(XML_HEADER);
+            fileWriter.write("");
             fileWriter.close();
+            FileOutputStream fos = new FileOutputStream(nfoFile);
+            fos.write(XML_HEADER.getBytes());
             // 使用 OutPutStream 将 文件写出
-            XML_OUTPUTTER.output(root, new FileOutputStream(nfoFile));
+            XML_OUTPUTTER.output(root, fos);
+            fos.close();
         } catch (IOException e) {
             System.out.println("#[WARN]    无法修改 " + nfoFile.getName() + "，文件已不存在或 .exe 没有删除该路径下文件的权限");
             return new NfoHelperResult<>(false, "无法修改/编辑 .nfo 文件");
@@ -202,26 +209,53 @@ public class IOService implements IOInterface {
             if (index > size || index < 0) {
                 return new NfoHelperResult<>(false, "输入的下标值不合法");
             }
-            // 删除原有的所有 tag 标签
-            root.removeChildren("tag");
             tagChildren.remove(index - 1);
-            root.addContent(tagChildren);
             rewriteNfoFile(nfoFile, root);
             return new NfoHelperResult<>("操作成功");
         }
         return new NfoHelperResult<>(false, "该 .nfo 标签不存在任何 tag 标签！");
     }
 
-    private void handlePullFolder(File folder) throws IOException {
+    @Override
+    public NfoHelperResult<File> showAllTag(File nfoFilePath) {
+        // 第一步 获取当前工作路径下所有 .nfo 文件对象
+        List<File> files = Arrays.stream(Objects.requireNonNull(nfoFilePath.listFiles())).toList();
+        List<File> nfoFileList = new ArrayList<>();
+        for (File file : files) {
+            if (!file.isDirectory() && file.getName().endsWith(NFO_SUFFIX)) {
+                nfoFileList.add(file);
+            }
+        }
+        if (!nfoFileList.isEmpty()) {
+            File nfoFile = nfoFileList.get(0);
+            UtilAid.infoConsole("当前读取的 .nfo 文件为：" + nfoFile.getName() + "，其标签为：");
+            Element rootElement = getRootElement(nfoFile);
+            List<Element> tagChildren = rootElement.getChildren("tag");
+            if (!tagChildren.isEmpty()) {
+                // 输出所有 tag
+                for (int i = 0; i < tagChildren.size(); i++) {
+                    UtilAid.infoConsole(i + 1 + ". <tag>" + tagChildren.get(i).getText() + "</tag>");
+                }
+                return new NfoHelperResult<>(true, nfoFile);
+            }
+            return new NfoHelperResult<>(true, nfoFile);
+        }
+        return new NfoHelperResult<>(false, "该路径下没有 .nfo 文件", (File) null);
+    }
+
+    private void handlePullFolder(File folder, Integer index) throws IOException {
         List<File> files = Arrays.stream(Objects.requireNonNull(folder.listFiles())).toList();
         if (!files.isEmpty()) {
             try {
                 // 获取工作路径内文件夹内的文件夹 File 对象
                 for (File file : files) {
-                    FileUtils.copyDirectoryToDirectory(file, new File(DEV_CLASSPATH));
-                    FileUtils.deleteDirectory(file);
+                    if (file.isDirectory()) {
+                        FileUtils.copyDirectoryToDirectory(file, new File(DEV_CLASSPATH));
+                        FileUtils.deleteDirectory(file);
+                    }
                 }
             } finally {
+                UtilAid.infoConsole("文件夹 " + folder.getName() + " 拖拽完毕，线程#" + index + " 关闭");
                 latch.countDown();
             }
         }

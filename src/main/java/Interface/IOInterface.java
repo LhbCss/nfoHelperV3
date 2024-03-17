@@ -82,4 +82,12 @@ public interface IOInterface {
      * @date 2024年3月16日01:36:43
      */
     NfoHelperResult<String> deleteTagByIndex(File nfoFile, Integer index);
+
+    /**
+     * 显示该路径下的 .nfo 文件的所有标签
+     * @param nfoFilePath .nfo 文件夹路径
+     * @return 返回读取的 .nfo File 对象
+     * @date 2024年3月17日08:45:37
+     */
+    NfoHelperResult<File> showAllTag(File nfoFilePath);
 }

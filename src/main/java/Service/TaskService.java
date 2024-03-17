@@ -30,12 +30,16 @@ public class TaskService implements TaskInterface {
     public void showTaskList() {
         System.out.println(
                 "---------------------------------------------------" + "\n"
-                + "#    当前执行目录：" + DEV_CLASSPATH + "\n"
+                + "#    当前工作路径：" + DEV_CLASSPATH + "\n"
                 + "#    Task 0 -> 修改工作路径（慎重！工作路径出错可能造成无法恢复的后果）" + "\n"
                 + "#    Task 1 -> 拉出当前工作路径下所有文件夹内的文件夹至工作路径中" + "\n"
                 + "#    Task 2 -> 将当前工作目录下的所有文件夹内的 .nfo 文件内艺人名字改为输入的值" + "\n"
-                + "#    Task 5 -> Task 1 + 2 同时执行" + "\n"
-                + "#    Task 6 -> 将当前工作目录的所有文件夹内的 .nfo 文件添加女艺人的名字" + "\n"
+                + "#    Task 3 -> Task 1 + 2 同时执行（统一拉到工作目录改名字）" + "\n"
+                + "#    Task 4 -> 将当前工作目录的所有文件夹内的 .nfo 文件添加女艺人的名字（仅修改名称未知的 .nfo 文件）" + "\n"
+                + "#    Task 5 -> 为当前工作目录的所有文件夹内的 .nfo 文件添加一条标签" + "\n"
+                + "#    Task 6 -> 微调 .nfo 文件标签 - 为当前工作目录下的 .nfo 文件删除一条指定标签（确保该路径下只有一个 .nfo 文件，否则只会取第一个修改）" + "\n"
+                + "#    Task 7 -> 微调 .nfo 文件标签 - 为当前工作目录下的 .nfo 文件添加一条指定标签" + "\n"
+                + "#    Task 8 -> 退出程序" + "\n"
                 + "---------------------------------------------------" + "\n"
         );
     }
@@ -59,13 +63,17 @@ public class TaskService implements TaskInterface {
                         break;
                     }
                     case 1: {
+                        long start = System.currentTimeMillis();
                         NfoHelperResult<String> result = ioInterface.pullFolderToClassPath();
+                        long end = System.currentTimeMillis();
+                        UtilAid.infoConsole("任务结束，共计耗时：" + (end - start) + " ms");
                         break;
                     }
                     case 2: {
                         sc = new Scanner(System.in);
                         System.out.println("#   请输入女艺人名字 -> ");
                         String actorName = sc.nextLine();
+                        long start = System.currentTimeMillis();
                         NfoHelperResult<List<File>> result = ioInterface.listFoldersNfo(new File(DEV_CLASSPATH));
                         if (result.getSuccess() && !result.getData().isEmpty()) {
                             List<File> nfoFiles = result.getData();
@@ -78,12 +86,15 @@ public class TaskService implements TaskInterface {
                                 }
                             }
                         }
+                        long end = System.currentTimeMillis();
+                        UtilAid.infoConsole("任务结束，共计耗时：" + (end - start) + " ms");
                         break;
                     }
-                    case 5: {
+                    case 3: {
                         sc = new Scanner(System.in);
                         System.out.println("#   请输入女艺人名字 -> ");
                         String actorName = sc.nextLine();
+                        long start = System.currentTimeMillis();
                         NfoHelperResult<String> result = ioInterface.pullFolderToClassPath();
                         if (result.getSuccess()) {
                             NfoHelperResult<List<File>> result2 = ioInterface.listFoldersNfo(new File(DEV_CLASSPATH));
@@ -97,21 +108,87 @@ public class TaskService implements TaskInterface {
                                         break;
                                     }
                                 }
+                                long end = System.currentTimeMillis();
+                                UtilAid.infoConsole("任务结束，共计耗时：" + (end - start) + " ms");
+                                break;
                             }
                             break;
                         }
+                        break;
                     }
-                    case 6: {
+                    case 4: {
                         sc = new Scanner(System.in);
                         System.out.println("#   请输入女艺人名字 -> ");
                         String actorName = sc.nextLine();
+                        long start = System.currentTimeMillis();
                         NfoHelperResult<List<File>> result = ioInterface.listFoldersNfo(new File(DEV_CLASSPATH));
                         if (result.getSuccess() && !result.getData().isEmpty()) {
                             for (File nfoFile : result.getData()) {
                                 ioInterface.addActorNameIfAbsent(actorName, nfoFile);
                             }
                         }
+                        long end = System.currentTimeMillis();
+                        UtilAid.infoConsole("任务结束，共计耗时：" + (end - start) + " ms");
                         break;
+                    }
+                    case 5: {
+                        sc = new Scanner(System.in);
+                        System.out.println("#   请输入标签名称 -> ");
+                        String tagName = sc.nextLine();
+                        long start = System.currentTimeMillis();
+                        NfoHelperResult<List<File>> result = ioInterface.listFoldersNfo(new File(DEV_CLASSPATH));
+                        if (result.getSuccess() && !result.getData().isEmpty()) {
+                            for (File nfoFile : result.getData()) {
+                                ioInterface.addOneTag(nfoFile, tagName);
+                            }
+                        }
+                        long end = System.currentTimeMillis();
+                        UtilAid.infoConsole("任务结束，共计耗时：" + (end - start) + " ms");
+                        break;
+                    }
+                    case 6: {
+                        NfoHelperResult<File> ret = ioInterface.showAllTag(new File(DEV_CLASSPATH));
+                        if (!ret.getSuccess()) {
+                            UtilAid.warnConsole(ret.getInfo());
+                            break;
+                        }
+                        sc = new Scanner(System.in);
+                        System.out.println("#   请输入要删除的标签的索引 ->");
+                        int delIndex = sc.nextInt();
+                        long start = System.currentTimeMillis();
+                        NfoHelperResult<String> result = ioInterface.deleteTagByIndex(ret.getData(), delIndex);
+                        if (result.getSuccess()) {
+                            UtilAid.infoConsole(result.getData());
+                        } else {
+                            UtilAid.warnConsole(result.getData());
+                        }
+                        long end = System.currentTimeMillis();
+                        UtilAid.infoConsole("任务结束，共计耗时：" + (end - start) + " ms");
+                        break;
+                    }
+                    case 7: {
+                        NfoHelperResult<File> ret = ioInterface.showAllTag(new File(DEV_CLASSPATH));
+                        if (!ret.getSuccess()) {
+                            UtilAid.warnConsole(ret.getInfo());
+                            break;
+                        }
+                        File nfoFile = ret.getData();
+                        sc = new Scanner(System.in);
+                        System.out.println("#   请输入希望添加的 tag 名称 ->");
+                        String tagName = sc.nextLine();
+                        long start = System.currentTimeMillis();
+                        NfoHelperResult<String> result = ioInterface.addOneTag(nfoFile, tagName);
+                        if (result.getSuccess()) {
+                            UtilAid.infoConsole(result.getData());
+                        } else {
+                            UtilAid.warnConsole(result.getData());
+                        }
+                        long end = System.currentTimeMillis();
+                        UtilAid.infoConsole("任务结束，共计耗时：" + (end - start) + " ms");
+                        break;
+                    }
+                    case 8: {
+                        System.exit(0);
                     }
                     default: {
                         UtilAid.warnConsole("输入的数字有误");
