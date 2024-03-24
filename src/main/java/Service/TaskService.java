@@ -30,7 +30,6 @@ public class TaskService implements TaskInterface {
     public void showTaskList() {
         System.out.println(
                 "---------------------------------------------------" + "\n"
-                + "#    当前工作路径：" + DEV_CLASSPATH + "\n"
                 + "#    Task 0 -> 修改工作路径（慎重！工作路径出错可能造成无法恢复的后果）" + "\n"
                 + "#    Task 1 -> 拉出当前工作路径下所有文件夹内的文件夹至工作路径中" + "\n"
                 + "#    Task 2 -> 将当前工作目录下的所有文件夹内的 .nfo 文件内艺人名字改为输入的值" + "\n"
@@ -47,6 +46,7 @@ public class TaskService implements TaskInterface {
     @Override
     public void handleSelect() {
         while (true) {
+            showClassPath();
             Scanner sc = new Scanner(System.in);
             System.out.println("#   请输入 Task 代号以执行任务 -> ");
             try {
@@ -201,5 +201,13 @@ public class TaskService implements TaskInterface {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    @Override
+    public void showClassPath() {
+        System.out.println(
+                "---------------------------------------------------" + "\n" +
+                "#  当前工作路径：" + DEV_CLASSPATH + "\n" +
+                "---------------------------------------------------");
     }
 }

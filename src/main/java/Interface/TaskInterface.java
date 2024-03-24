@@ -14,4 +14,9 @@ public interface TaskInterface {
      * 执行选择任务
      */
     void handleSelect();
+
+    /**
+     * 输出工作路径
+     */
+    void showClassPath();
 }

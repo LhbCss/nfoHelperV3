@@ -18,6 +18,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -76,7 +80,7 @@ public class IOService implements IOInterface {
         File classPath = new File(DEV_CLASSPATH);
         // 工作路径下的所有文件夹
         List<File> classPathFolders = Arrays.stream(Objects.requireNonNull(classPath.listFiles(File::isDirectory))).toList();
-        for (int i = 0;i < classPathFolders.size();i++) {
+        for (int i = 0; i < classPathFolders.size(); i++) {
             UtilAid.infoConsole("获取到工作路径下的文件夹 -> " + classPathFolders.get(i).getName());
         }
         // 将每个文件夹分配到工作线程池完成操作
@@ -113,7 +117,7 @@ public class IOService implements IOInterface {
         // 第二步 遍历文件夹，获取 .nfo 文件
         List<File> nfoFileList = new ArrayList<>();
         if (!childFolders.isEmpty()) {
-            for (int i = 0;i < childFolders.size();i++) {
+            for (int i = 0; i < childFolders.size(); i++) {
                 // 获取子文件夹中的所有文件
                 List<File> files = Arrays.stream(Objects.requireNonNull(childFolders.get(i).listFiles())).toList();
                 for (File file : files) {
@@ -250,8 +254,16 @@ public class IOService implements IOInterface {
                 // 获取工作路径内文件夹内的文件夹 File 对象
                 for (File file : files) {
                     if (file.isDirectory()) {
-                        FileUtils.copyDirectoryToDirectory(file, new File(DEV_CLASSPATH));
-                        FileUtils.deleteDirectory(file);
+                        Path srcDir = file.toPath();
+                        Path destDir = Paths.get(DEV_CLASSPATH, file.getName());
+                        Files.createDirectories(destDir);
+                        Files.walk(srcDir).forEach(source -> {
+                            try {
+                                Files.copy(source, destDir.resolve(srcDir.relativize(source)), StandardCopyOption.REPLACE_EXISTING);
+                            } catch (IOException e) {
+                                UtilAid.warnConsole("拷贝文件时出现异常，异常信息：\n" + e);
+                            }
+                        });
                     }
                 }
             } finally {
