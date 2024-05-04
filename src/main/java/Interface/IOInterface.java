@@ -48,6 +48,16 @@ public interface IOInterface {
     NfoHelperResult<String> changeActorName(String actorName, File nfoFile);
 
     /**
+     * 无差别添加一条艺人名字标签，当然，完全重复的名字不添加
+     * @param actorName 艺人名字
+     * @param nfoFile nfo 文件
+     * @return 操作结果
+     * @date 2024年5月5日00:20:39
+     * @author linhebin
+     */
+    NfoHelperResult<String> addActorName(String actorName, File nfoFile);
+
+    /**
      * 当且仅当 .nfo 内缺失女艺人名字时，为其添加该名称标签
      * @param actorName 名称
      * @param nfoFile .nfo File 对象
@@ -90,4 +100,6 @@ public interface IOInterface {
      * @date 2024年3月17日08:45:37
      */
     NfoHelperResult<File> showAllTag(File nfoFilePath);
+
+    NfoHelperResult<String> matchThenChangeActorName(String featureName, String newName) throws IOException, JDOMException;
 }

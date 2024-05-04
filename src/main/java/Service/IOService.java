@@ -3,8 +3,6 @@ package Service;
 import Constant.NfoHelperResult;
 import Constant.UtilAid;
 import Interface.IOInterface;
-import jdk.jshell.execution.Util;
-import org.apache.commons.io.FileUtils;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.JDOMException;
@@ -25,7 +23,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static Constant.Constant.DEV_CLASSPATH;
 
@@ -80,8 +77,8 @@ public class IOService implements IOInterface {
         File classPath = new File(DEV_CLASSPATH);
         // 工作路径下的所有文件夹
         List<File> classPathFolders = Arrays.stream(Objects.requireNonNull(classPath.listFiles(File::isDirectory))).toList();
-        for (int i = 0; i < classPathFolders.size(); i++) {
-            UtilAid.infoConsole("获取到工作路径下的文件夹 -> " + classPathFolders.get(i).getName());
+        for (File classPathFolder : classPathFolders) {
+            UtilAid.infoConsole("获取到工作路径下的文件夹 -> " + classPathFolder.getName());
         }
         // 将每个文件夹分配到工作线程池完成操作
         int threadNum = classPathFolders.size();
@@ -148,6 +145,30 @@ public class IOService implements IOInterface {
                 }
             }
         }
+        return rewriteNfoFile(nfoFile, root);
+    }
+
+    @Override
+    public NfoHelperResult<String> addActorName(String actorName, File nfoFile) {
+        if (!nfoFile.getName().endsWith(NFO_SUFFIX)) {
+            return new NfoHelperResult<>(false, "File 对象不是一个 .nfo 文件");
+        }
+        Element root = getRootElement(nfoFile);
+        List<Element> actorChildren = root.getChildren("actor");
+        // 检查是否存在重复艺人名称
+        for (Element actor : actorChildren) {
+            Element name = actor.getChild("name");
+            String text = name.getText();
+            if (text.equalsIgnoreCase(actorName)) {
+                return new NfoHelperResult<>(false, "名称重复");
+            }
+        }
+        // 无差别添加一条名称标签并返回
+        Element actor = new Element("actor");
+        Element name = new Element("name");
+        name.setText(actorName); // <name>actorName</name>
+        actor.addContent(name); // <actor><name>actorName</name></actor>
+        root.addContent(actor);
         return rewriteNfoFile(nfoFile, root);
     }
 
@@ -256,20 +277,46 @@ public class IOService implements IOInterface {
                     if (file.isDirectory()) {
                         Path srcDir = file.toPath();
                         Path destDir = Paths.get(DEV_CLASSPATH, file.getName());
-                        Files.createDirectories(destDir);
-                        Files.walk(srcDir).forEach(source -> {
-                            try {
-                                Files.copy(source, destDir.resolve(srcDir.relativize(source)), StandardCopyOption.REPLACE_EXISTING);
-                            } catch (IOException e) {
-                                UtilAid.warnConsole("拷贝文件时出现异常，异常信息：\n" + e);
-                            }
-                        });
+//                        if (!Files.exists(destDir)) {
+//                            Files.createDirectories(destDir);
+//                        }
+                        Files.move(srcDir, destDir, StandardCopyOption.REPLACE_EXISTING);
                     }
                 }
+            } catch (IOException e) {
+                UtilAid.warnConsole("拷贝文件时出现异常，异常信息：\n" + e);
             } finally {
                 UtilAid.infoConsole("文件夹 " + folder.getName() + " 拖拽完毕，线程#" + index + " 关闭");
                 latch.countDown();
             }
         }
+    }
+
+    public NfoHelperResult<String> matchThenChangeActorName(String featureName, String newName) throws IOException, JDOMException {
+        // 第一步，获取所有文件夹的 .nfo 文件集合
+        NfoHelperResult<List<File>> result = listFoldersNfo(new File(DEV_CLASSPATH));
+        if (result.getSuccess()) {
+            List<File> nfoFiles = result.getData();
+            if (!nfoFiles.isEmpty()) {
+                for (File nfo : nfoFiles) {
+                    Element rootElement = getRootElement(nfo);
+                    // 第二步，获取 <actor> 标签集合
+                    List<Element> actorTags = rootElement.getChildren("actor");
+                    for (Element actorTag : actorTags) {
+                        // 第三步 检查是否匹配
+                        String name = actorTag.getChild("name").getText();
+                        if (name.contains(featureName) && !name.equals(newName)) {
+                            UtilAid.infoConsole("发现匹配的艺人名：" + name);
+                            actorTag.getChild("name").setText(newName);
+                        }
+                    }
+                    // 第四步 写回
+                    rewriteNfoFile(nfo, rootElement);
+                }
+            }
+        } else {
+            UtilAid.warnConsole(result.getInfo());
+        }
+        return new NfoHelperResult<>("ok");
     }
 }
